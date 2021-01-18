@@ -1,15 +1,11 @@
 package net.extracode.selenium.ezwim.util.testers.dmitriyRasputin;
 
 
-import net.extracode.selenium.common.Pause;
 import net.extracode.selenium.driver.DriverWrapper;
 import net.extracode.selenium.ezwim.common.SaveArtifactsOnError;
-import net.extracode.selenium.ezwim.util.ContextExpression;
 import net.extracode.selenium.ezwim.util.TestConfiguration;
 import net.extracode.selenium.ezwim.util.navigator.Navigator;
-import net.extracode.selenium.ezwim.util.navigator.eem.Login;
 import net.extracode.selenium.ezwim.util.remote.RemoteServerAct;
-import net.extracode.selenium.tests.x2s.common.login.LoginToEGV;
 import net.extracode.test.context.Context;
 import net.extracode.test.reporter.Reporter;
 import org.apache.logging.log4j.LogManager;
@@ -19,7 +15,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.net.URL;
 
 public class TestLogin {
 
@@ -57,22 +52,19 @@ public class TestLogin {
 
     /**
      * @author Rasputin D<br>
-     * @since september 2020
-     * To automate ticket(s): EGV BR-02247 NameOfTicket<br>
-     * Time: 0 m 0 s
-     * AIM: AIM_details<br>
-     * Expected: name_of_the_elements_to_be_checked<br>
+     * @since january 2021
+     * To automate ticket(s): Novestio-00008 	<br>
+     * Expected: description of the new site<br>
      * <p>
      * PREPARE FOR TEST:<br>
-     * Steps_for_manual_reproduce_static_data
      * AUTOTEST Steps:<br>
-     * <p>
-     * before()<br>
-     * <p>
-     * test()<br>
-     * <p>
-     * after()<br>
-     * <p>
+     *  Go to URL -  novest.io<br>
+     *  changing the language to Russian<br>
+     *  go to Solve The Problem:<br>
+     *  we perform user registration<br>
+     *  Result<br>
+     *      the user must be created (now there is no automatic deletion of the user) <br>
+     *      (and there are no rights for this action at all)<br>
      */
     @Test
     public void test() throws Exception {
@@ -80,7 +72,6 @@ public class TestLogin {
             String name = "novest_RDN";
             String email = "patrick+Novestio-00008@ezwim-mail.com";
             String password = "eHxu^2z)111";
-
 
             logger.info("Created by Rasputin D 01.2021.");
 
@@ -102,11 +93,6 @@ public class TestLogin {
                     .fillPassword(password,driver,context,reporter)
                     .fillConfirmPassword(password,driver,context,reporter)
                     .clickRegister(driver,context,reporter);
-
-
-           /* //Check worked of the mail include for templateA in mail body
-            Navigator.getInstance().getEmail(driver, context, reporter);
-                    //.clickMessageBySenderAndSubject("Ezwim Team", subject, driver, context, reporter);*/
 
 
             logger.info("Test passed");

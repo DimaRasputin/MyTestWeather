@@ -31,7 +31,6 @@ public class LoginInUserNovest {
     private String dbNumber;
     private String dbStaging = "";
     private String dbDemo = "";
-    private String selenium = "only_5_numbers_of_selenium_ticket";
 
     @Before
     public void before() throws IOException {
@@ -57,27 +56,29 @@ public class LoginInUserNovest {
 
     /**
      * @author Rasputin D<br>
-     * @since september 2020
-     * To automate ticket(s): EGV BR-02247 NameOfTicket<br>
-     * Time: 0 m 0 s
-     * AIM: AIM_details<br>
-     * Expected: name_of_the_elements_to_be_checked<br>
+     * @since january 2021
+     * To automate ticket(s): Novestio-00008 	<br>
+     * Expected: description of the new site<br>
      * <p>
      * PREPARE FOR TEST:<br>
-     * Steps_for_manual_reproduce_static_data
      * AUTOTEST Steps:<br>
-     * <p>
-     * before()<br>
-     * <p>
-     * test()<br>
-     * <p>
-     * after()<br>
+     *  Go to URL -  novest.io<br>
+     *  go to Test Novest<br>
+     *  changing the language to Russian<br>
+     *  Go to page:<br>
+     *  - Try It<br>
+     *  - Optimum<br>
+     *  - Enterprise<br>
+     *  - SuperPlus<br>
+     *  - Gallery<br>
+     *  - Profile<br>
+     *  Result<br>
+     *  pages should load without errors<br>
      * <p>
      */
     @Test
     public void test() throws Exception {
         try {
-            String name = "novest_RDN";
             String email = "patrick+Novestio-00008@ezwim-mail.com";
             String password = "eHxu^2z)111";
 
@@ -147,8 +148,6 @@ public class LoginInUserNovest {
                     Const.PAGE_COMPLETELY_LOADED_TIMEOUT).act(driver, context, reporter);
 
             logger.info("Test passed");
-
-            //PRESS CTRL+ALT+L for reformat source code
 
         } catch (Exception e) {
             new SaveArtifactsOnError(this.getClass().getSimpleName()).act(driver, context, reporter);
