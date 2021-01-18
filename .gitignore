@@ -1,0 +1,14 @@
+*.iml
+.idea
+target
+*.png
+/*.html
+*.jpg
+*.bmp
+*.log
+*.jar
+*.swp
+*.txt
+src/test/resources/config_local.properties
+src/test/resources/context_local.properties
+log/
