@@ -1,6 +1,7 @@
 package net.extracode.selenium.ezwim.util.testers.dmitriyRasputin;
 
 
+import net.extracode.selenium.common.Pause;
 import net.extracode.selenium.driver.DriverWrapper;
 import net.extracode.selenium.ezwim.common.SaveArtifactsOnError;
 import net.extracode.selenium.ezwim.util.TestConfiguration;
@@ -69,8 +70,8 @@ public class TestLogin {
     @Test
     public void test() throws Exception {
         try {
-            String name = "novest_RDN";
-            String email = "patrick+Novestio-00008@ezwim-mail.com";
+            String name = "novest_RDN-1";
+            String email = "patrick+Novestio-000088@ezwim-mail.com";
             String password = "eHxu^2z)111";
 
             logger.info("Created by Rasputin D 01.2021.");
@@ -94,6 +95,12 @@ public class TestLogin {
                     .fillConfirmPassword(password,driver,context,reporter)
                     .clickRegister(driver,context,reporter);
 
+            new Pause("10000").act(driver, context, reporter);
+            Navigator.getInstance().getNovest()
+                    .getUserInterface()
+                    .getProfile(driver,context,reporter)
+                    .clickDeleteAccount(driver,context,reporter)
+                    .clickYes(driver,context,reporter);
 
             logger.info("Test passed");
 

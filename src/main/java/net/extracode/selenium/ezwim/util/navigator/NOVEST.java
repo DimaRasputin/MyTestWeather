@@ -10,6 +10,7 @@ import net.extracode.selenium.ezwim.util.navigator.eem.Login;
 import net.extracode.selenium.ezwim.util.navigator.novest.SolveProblem;
 import net.extracode.selenium.ezwim.util.navigator.novest.TestNovest;
 import net.extracode.selenium.ezwim.util.navigator.novest.userInterface.UserInterface;
+import net.extracode.selenium.ezwim.util.navigator.novest.userInterface.userInterfaceMenu.Free;
 import net.extracode.test.context.Context;
 import net.extracode.test.reporter.Reporter;
 import org.apache.logging.log4j.LogManager;
@@ -140,6 +141,9 @@ public class NOVEST implements Navigable {
         new Click(ByHandler.getBy(context, "novest.testNovest")).act(driverWrapper, context, reporter);
         new WaitFor(ByHandler.getBy(context, "common.flagPageLoad"),
                 Const.PAGE_COMPLETELY_LOADED_TIMEOUT).act(driverWrapper, context, reporter);
+        return testNovest;
+    }
+    public TestNovest clickTestNovest() {
         return testNovest;
     }
 

@@ -11,6 +11,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.openxml4j.util.ZipSecureFile;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.junit.Assert;
@@ -31,8 +32,7 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Set;
+import java.util.*;
 import java.util.zip.ZipFile;
 
 public class GetAct {
@@ -45,11 +45,11 @@ public class GetAct {
         return workbook.getSheet(sheetName).getLastRowNum();
     }
 
-    public static int getLastRowNum(String filename, String sheetName) throws IOException, InvalidFormatException {
+    public static int getLastRowNum(String filename, String sheetName) throws IOException {
         return getExcelWorkbook(filename).getSheet(sheetName).getLastRowNum();
     }
 
-    public static int getLastRowNum(String filename, int sheetIndex) throws IOException, InvalidFormatException {
+    public static int getLastRowNum(String filename, int sheetIndex) throws IOException {
         return getExcelWorkbook(filename).getSheetAt(sheetIndex).getLastRowNum();
     }
 
@@ -66,24 +66,22 @@ public class GetAct {
         return result;
     }
 
-    public static double getNumberFromExcelFile(String filename, String sheetName, int row, int col) throws IOException, InvalidFormatException {
+    public static double getNumberFromExcelFile(String filename, String sheetName, int row, int col) throws IOException {
         return getNumberFromExcelCell(getExcelWorkbook(filename), sheetName, row, col);
     }
 
-    public static double getNumberFromExcelCell(Workbook workbook, int sheetIndex, int row, int col) throws
-            IOException {
+    public static double getNumberFromExcelCell(Workbook workbook, int sheetIndex, int row, int col) throws IOException {
         double result = workbook.getSheetAt(sheetIndex).getRow(row).getCell(col).getNumericCellValue();
         workbook.close();
         return result;
     }
 
-    public static double getNumberFromExcelFile(String filename, int sheetIndex, int row, int col) throws IOException,
-            InvalidFormatException {
+    public static double getNumberFromExcelFile(String filename, int sheetIndex, int row, int col) throws IOException {
         return getNumberFromExcelCell(getExcelWorkbook(filename), sheetIndex, row, col);
     }
 
 
-    public static String getValueFromExcelFile(String filename, String sheetName, int row, int col) throws IOException, InvalidFormatException {
+    public static String getValueFromExcelFile(String filename, String sheetName, int row, int col) throws IOException {
 
         String valueCell = " ";
         String typeCell = getTypeOfExcelCell(getExcelWorkbook(filename), sheetName, row, col);
@@ -103,7 +101,43 @@ public class GetAct {
         return valueCell;
     }
 
-    public static void validateValueFromExcelFile(String expectedValue, String expectedTypeValue, String filename, String sheetName, int row, int col) throws IOException, InvalidFormatException {
+    public static void validate(String label, String expectedValue, String actualValue) {
+        logger.info("Expected " + label + ": " + expectedValue + "|");
+        logger.info("Actual  " + label + " : " + actualValue + "|");
+        if (expectedValue.equals(actualValue)) logger.info("OK.");
+        else throw new EzwimException("Wrong value. Expected '" + expectedValue + "' but actual '" + actualValue + "'");
+    }
+
+    public static void validateContains(String label, String expectedValue, String actualValue) {
+        logger.info("Expected " + label + " contains: " + expectedValue + "|");
+        logger.info("Actual  " + label + ": " + actualValue + "|");
+        if (actualValue.contains(expectedValue)) logger.info("OK.");
+        else throw new EzwimException("Wrong value.");
+    }
+
+    public static void validate(String label, int expectedValue, int actualValue) {
+        logger.info("Expected " + label + ": " + expectedValue);
+        logger.info("Actual  " + label + " : " + actualValue);
+        if (expectedValue == actualValue) logger.info("OK.");
+        else throw new EzwimException("Wrong value.");
+    }
+
+    public static void validate(String label, double expectedValue, double actualValue) {
+        logger.info("Expected " + label + ": " + expectedValue);
+        logger.info("Actual  " + label + " : " + actualValue);
+        if (expectedValue == actualValue) logger.info("OK.");
+        else throw new EzwimException("Wrong value.");
+    }
+
+    public static void validate(String label, long expectedValue, long actualValue) {
+        logger.info("Expected " + label + ": " + expectedValue);
+        logger.info("Actual  " + label + " : " + actualValue);
+        if (expectedValue == actualValue) logger.info("OK.");
+        else throw new EzwimException("Wrong value.");
+    }
+
+    public static void validateValueFromExcelFile(String expectedValue, String expectedTypeValue, String filename,
+                                                  String sheetName, int row, int col) throws IOException {
 
         String actualValue = getValueFromExcelFile(filename, sheetName, row, col);
         String actualTypeValue = getTypeOfExcelCell(getExcelWorkbook(filename), sheetName, row, col);
@@ -134,7 +168,7 @@ public class GetAct {
         return workbook.getSheet(sheetName).getRow(row).getCell(col).getCellType().toString();
     }
 
-    public static String getTypeOfExcelCell(String filename, String sheetName, int row, int col) throws IOException, InvalidFormatException {
+    public static String getTypeOfExcelCell(String filename, String sheetName, int row, int col) throws IOException {
         return getTypeOfExcelCell(getExcelWorkbook(filename), sheetName, row, col);
     }
 
@@ -144,7 +178,7 @@ public class GetAct {
         return result;
     }
 
-    public static Date getDateFromExcelFile(String filename, String sheetName, int row, int col) throws IOException, InvalidFormatException {
+    public static Date getDateFromExcelFile(String filename, String sheetName, int row, int col) throws IOException {
         return getDateFromExcelCell(getExcelWorkbook(filename), sheetName, row, col);
     }
 
@@ -165,10 +199,11 @@ public class GetAct {
     public static int getCount(By by, DriverWrapper driverWrapper, Context context, Reporter reporter) {
         String tempVar = GetAct.class.getSimpleName() + System.currentTimeMillis();
         new GetSize(by, tempVar).act(driverWrapper, context, reporter);
-        return Integer.valueOf((String) context.getVars().get(tempVar));
+        return Integer.parseInt((String) context.getVars().get(tempVar));
     }
 
-    public static Workbook getExcelWorkbook(String filename) throws IOException, InvalidFormatException {
+    public static Workbook getExcelWorkbook(String filename) throws IOException {
+        ZipSecureFile.setMinInflateRatio(-1.0d);
         return WorkbookFactory.create(new File(filename));
     }
 
@@ -184,11 +219,11 @@ public class GetAct {
         return result;
     }
 
-    public static String getStringFromExcelFile(String filename, String sheetName, int row, int col) throws IOException, InvalidFormatException {
+    public static String getStringFromExcelFile(String filename, String sheetName, int row, int col) throws IOException {
         return getStringFromExcelCell(getExcelWorkbook(filename), sheetName, row, col);
     }
 
-    public static String getStringFromExcelFile(String filename, int sheetIndex, int row, int col) throws IOException, InvalidFormatException {
+    public static String getStringFromExcelFile(String filename, int sheetIndex, int row, int col) throws IOException {
         return getStringFromExcelCell(getExcelWorkbook(filename), sheetIndex, row, col);
     }
 
@@ -238,15 +273,13 @@ public class GetAct {
     public static String getValueJQuery(String jQueryExpres, DriverWrapper driverWrapper, Context context, Reporter reporter) {
         new Script("return " + jQueryExpres + ";", "result")
                 .act(driverWrapper, context, reporter);
-        String result = (String) context.getVars().get("result");
-        return result;
+        return (String) context.getVars().get("result");
     }
 
     public static String getValueJSByid(String id, DriverWrapper driverWrapper, Context context, Reporter reporter) {
         new Script("return document.getElementById('" + id + "').value;", "result")
                 .act(driverWrapper, context, reporter);
-        String result = (String) context.getVars().get("result");
-        return result;
+        return (String) context.getVars().get("result");
     }
 
     public static String getValueJSByXpath(String xpath, DriverWrapper driverWrapper, Context context, Reporter reporter) {
@@ -255,8 +288,7 @@ public class GetAct {
                         ".evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;} " +
                         "return(getElementByXpath(\"" + xpath + "\").value );", "result")
                 .act(driverWrapper, context, reporter);
-        String result = (String) context.getVars().get("result");
-        return result;
+        return (String) context.getVars().get("result");
     }
 
     public static int getNumberOpenedWindows(DriverWrapper driverWrapper, Context context, Reporter reporter) {
@@ -271,8 +303,7 @@ public class GetAct {
                         ".evaluate(path, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;} " +
                         "return(getElementByXpath(\"" + xPath + "\").checked );", "result")
                 .act(driverWrapper, context, reporter);
-        Boolean result = (Boolean) context.getVars().get("result");
-        return result;
+        return (Boolean) context.getVars().get("result");
     }
 
     /**
@@ -288,6 +319,39 @@ public class GetAct {
         XPathFactory xpathFactory = XPathFactory.newInstance();
         XPath xpath = xpathFactory.newXPath();
         return xpath.evaluate(xPath, document);
+    }
+
+    public static Date getDateOfTestServerDb() throws IOException {
+        return GetAct.getDateOfTimezone(GetAct.getValueFromTestContextProperties("eem.timezone"));
+    }
+
+    public static Date getDateOfTimezone(String timeZone) throws IOException {
+        Calendar c = Calendar.getInstance();
+        c.setTime(new Date());
+        int remoteOffset = TimeZone.getTimeZone(timeZone).getOffset(System.currentTimeMillis());
+        int localOffset = TimeZone.getDefault().getOffset(System.currentTimeMillis());
+        int delta = (remoteOffset - localOffset) / 60000;
+        c.add(Calendar.MINUTE, delta);
+        return c.getTime();
+    }
+
+    public static String getValueFromTestContextProperties(String key) throws IOException {
+        String configParam;
+        if (System.getProperties().containsKey("test.config")) {
+            configParam = System.getProperty("test.config");
+        } else {
+            configParam = "config_local.properties";
+        }
+
+        Properties property = new Properties();
+        InputStream inputStream = GetAct.class.getClassLoader().getResourceAsStream(configParam);
+        property.load(inputStream);
+        String serverFileProp = property.getProperty("contextProps");
+        inputStream = GetAct.class.getClassLoader().getResourceAsStream(serverFileProp);
+        property.load(inputStream);
+        String zone = property.getProperty(key);
+
+        return zone;
     }
 
 }

@@ -29,6 +29,8 @@ public class UserInterface implements Navigable {
     private SuperPlus superPlus;
     private Gallery gallery;
     private Profile profile;
+    private Consultancy consultancy;
+    private Free free;
 
 
 
@@ -41,6 +43,8 @@ public class UserInterface implements Navigable {
         superPlus = new SuperPlus();
         gallery = new Gallery();
         profile = new Profile();
+        consultancy = new Consultancy();
+        free = new Free();
 
     }
 
@@ -133,4 +137,25 @@ public class UserInterface implements Navigable {
                 Const.PAGE_COMPLETELY_LOADED_TIMEOUT).act(driverWrapper, context, reporter);
         return profile;
     }
+
+    public Consultancy getConsultancy(DriverWrapper driverWrapper, Context context, Reporter reporter) {
+        consultancy.navigate(driverWrapper, context, reporter);
+        new WaitFor(ByHandler.getBy(context, "common.flagPageLoad"),
+                Const.PAGE_COMPLETELY_LOADED_TIMEOUT).act(driverWrapper, context, reporter);
+        return consultancy;
+    }
+    public Consultancy getConsultancy() {
+        return consultancy;
+    }
+
+    public Free getFree(DriverWrapper driverWrapper, Context context, Reporter reporter) {
+        free.navigate(driverWrapper, context, reporter);
+        new WaitFor(ByHandler.getBy(context, "common.flagPageLoad"),
+                Const.PAGE_COMPLETELY_LOADED_TIMEOUT).act(driverWrapper, context, reporter);
+        return free;
+    }
+    public Free getFree() {
+        return free;
+    }
+
 }

@@ -13,19 +13,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 
-public class Profile implements Navigable {
+public class DeleteAccount implements Navigable {
 
-    private static final Logger logger = LogManager.getLogger(Profile.class.getSimpleName());
+    private static final Logger logger = LogManager.getLogger(DeleteAccount.class.getSimpleName());
 
     private Register register;
-    private DeleteAccount deleteAccount;
 
 
 
-    public Profile() {
+    public DeleteAccount() {
         register = new Register();
-        deleteAccount = new DeleteAccount();
-
     }
 
 
@@ -34,23 +31,32 @@ public class Profile implements Navigable {
         logger.info("navigate");
         new WaitFor(ByHandler.getBy(context, "common.flagPageLoad"),
                 Const.PAGE_COMPLETELY_LOADED_TIMEOUT).act(driverWrapper, context, reporter);
-        new Click(ByHandler.getBy(context, "novest.testNovest.userInterface.profile"))
+        new Click(ByHandler.getBy(context, "novest.testNovest.userInterface.profile.deleteAccount"))
                 .act(driverWrapper, context, reporter);
         new WaitFor(ByHandler.getBy(context, "common.flagPageLoad"),
                 Const.PAGE_COMPLETELY_LOADED_TIMEOUT).act(driverWrapper, context, reporter);
     }
 
-    public DeleteAccount clickDeleteAccount(DriverWrapper driverWrapper, Context context, Reporter reporter) {
-        logger.info("click Delete account ");
+    public DeleteAccount clickYes(DriverWrapper driverWrapper, Context context, Reporter reporter) {
+        logger.info("click Delete account - Yes");
         new WaitFor(ByHandler.getBy(context, "common.flagPageLoad"),
                 Const.PAGE_COMPLETELY_LOADED_TIMEOUT).act(driverWrapper, context, reporter);
-        new Click(ByHandler.getBy(context, "novest.testNovest.userInterface.profile.deleteAccount")).act(driverWrapper, context, reporter);
+        new Click(ByHandler.getBy(context, "novest.testNovest.userInterface.profile.deleteAccount.yes")).act(driverWrapper, context, reporter);
         new WaitFor(ByHandler.getBy(context, "common.flagPageLoad"),
                 Const.PAGE_COMPLETELY_LOADED_TIMEOUT).act(driverWrapper, context, reporter);
-
-        return deleteAccount;
+        
+        return this;
     }
 
+    public DeleteAccount clickNo(DriverWrapper driverWrapper, Context context, Reporter reporter) {
+        logger.info("click Delete account - No");
+        new WaitFor(ByHandler.getBy(context, "common.flagPageLoad"),
+                Const.PAGE_COMPLETELY_LOADED_TIMEOUT).act(driverWrapper, context, reporter);
+        new Click(ByHandler.getBy(context, "novest.testNovest.userInterface.profile.deleteAccount.no")).act(driverWrapper, context, reporter);
+        new WaitFor(ByHandler.getBy(context, "common.flagPageLoad"),
+                Const.PAGE_COMPLETELY_LOADED_TIMEOUT).act(driverWrapper, context, reporter);
 
+        return this;
+    }
 
 }

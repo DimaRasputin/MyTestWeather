@@ -93,5 +93,8 @@ public class TestNovest implements Navigable {
                 Const.PAGE_COMPLETELY_LOADED_TIMEOUT).act(driverWrapper, context, reporter);
         return register;
     }
+    public Register clickRegister() {
+        return register;
+    }
 
 }
