@@ -101,7 +101,7 @@ public class CheckWorkOfConsultancyReport {
             String email = "patrick+Consultancy@ezwim-mail.com";
             String password = "eHxu^2z)111";
             String budget = "1000000";
-            String ExampleNumber  = "568";
+            String ExampleNumber  = "568s";
 
             logger.info("Created by Rasputin D 05.2021.");
 
