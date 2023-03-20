@@ -1,6 +1,7 @@
 package net.extracode.selenium.ezwim.util.remote;
 
 import com.jcraft.jsch.*;
+import net.extracode.selenium.common.exception.SeleniumDownloadException;
 import net.extracode.selenium.ezwim.exception.EzwimException;
 import net.extracode.selenium.ezwim.util.SshServer;
 import org.apache.logging.log4j.LogManager;
@@ -13,19 +14,25 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
+import java.util.Random;
 
 
 public class RemoteServerAct {
 
-    private static final Logger LOGGER = LogManager.getLogger(RemoteServerAct.class.getSimpleName());
+    private static final Logger logger = LogManager.getLogger(RemoteServerAct.class.getSimpleName());
 
     private String tempFileName;
     private String tempFilePath;
     private String sqlOutput = null;
-    String remoteDir = "/home/autoload";
+    //String remoteDir = "/home/autoload";
+    String remoteDir = "/home/ezconfig/tmp";
     String connSchema;
     String connSchemaEgv;
+    String connSchemaEsm;
     String connDb;
+    String connDbEsm;
+    //int sshPort = 17022;
+    int sshPort = 22;
 
     public String getServerName() throws IOException {
         String servName;
@@ -43,21 +50,28 @@ public class RemoteServerAct {
         inputStream = SqlAct.class.getClassLoader().getResourceAsStream(serverFileProp);
         property.load(inputStream);
         String serverURL = property.getProperty("egv.url");
+        if (serverURL == null) return "not egv url";
         if (serverURL.contains("stagdup.eztest.nu")) {
             servName = "staging";
         } else if (serverURL.contains("stagdup2.eztest.nu")) {
             servName = "staging2";
+        } else if (serverURL.contains("pp-test-cloud.eztest.nu")) {
+            servName = "test_cloud"; //10.0.1.25
+        } else if (serverURL.contains("pp-staging-cloud.eztest.nu")) {
+            servName = "staging_cloud"; //10.65.50.25
         } else if (serverURL.contains("development-06.lan")) {
             servName = "demo";
         } else {
             servName = "unknown";
         }
-
+        //logger.info("Server name: " + servName);
         return servName;
     }
 
     public void defineSchemaDbEem(String serverName, String dbNumberStaging, String dbNumberDemo) {
         if (serverName.matches("staging")) {
+            connDbEsm = "IST2ESM";
+            connSchemaEsm = "wf";
             if (dbNumberStaging.matches("101")) {
                 connSchema = "ps1p01";
                 connSchemaEgv = "ps1";
@@ -85,6 +99,8 @@ public class RemoteServerAct {
             } else
                 throw new EzwimException("Wrong DB number for Staging");
         } else if (serverName.matches("demo")) {
+            connDbEsm = "DEVDBFIRST";
+            connSchemaEsm = "wf";
             if (dbNumberDemo.matches("101")) {
                 connSchema = "dv1p01";
                 connSchemaEgv = "dv1";
@@ -104,6 +120,8 @@ public class RemoteServerAct {
             } else
                 throw new EzwimException("Wrong DB number for Demo");
         } else if (serverName.matches("staging2")) {
+            connDbEsm = "DBNODE2";
+            connSchemaEsm = "wf";
             if (dbNumberStaging.matches("101")) {
                 connSchema = "ps1p01";
                 connSchemaEgv = "ps1";
@@ -140,6 +158,11 @@ public class RemoteServerAct {
         return connSchema;
     }
 
+    public String getConnSchemaEsm(String serverName) {
+        defineSchemaDbEem(serverName, "101", "101");
+        return connSchemaEsm;
+    }
+
     public String getConnSchemaEgvByEemPartition(String serverName, String dbNumberStaging, String dbNumberDemo) {
         defineSchemaDbEem(serverName, dbNumberStaging, dbNumberDemo);
         return connSchemaEgv;
@@ -150,9 +173,41 @@ public class RemoteServerAct {
         return connDb;
     }
 
+    public String getConnDbEsm(String serverName) {
+        defineSchemaDbEem(serverName, "101", "101");
+        return connDbEsm;
+    }
+
+    //need to refactor code - arrays should not be in method and need ability to choose master and slave
+    public String getRandomPartition() throws IOException {
+        String serv = getServerName();
+        String partition = "";
+        Random generator = new Random();
+
+        if (serv.equals("demo")) {
+            String[] array = new String[]{"101", "102", "201", "202"};
+            int randomIndex = generator.nextInt(array.length);
+            partition = array[randomIndex];
+        }
+        if (serv.equals("staging") || serv.equals("staging2")) {
+            String[] array = new String[]{"101", "102", "201", "202", "203", "401"};
+            int randomIndex = generator.nextInt(array.length);
+            partition = array[randomIndex];
+        }
+        return partition;
+    }
+
     public String getHostName() throws IOException {
         String server = getServerName();
         String hostName = null;
+        if (server.equals("test_cloud")) {
+            //hostName = "cuda1-extracode.ddns.net"; //10.0.1.25
+            hostName = "10.0.1.25";
+        }
+        if (server.equals("staging_cloud")) {
+            //10.65.50.25
+            hostName = "10.65.50.25";
+        }
         if (server.equals("staging")) {
             hostName = "d-fe1.ezwim.cyso.net";
         }
@@ -233,34 +288,31 @@ public class RemoteServerAct {
     }
 
     public void putTempFileOnServer(String userName) throws IOException {
-        Session session = null;
-        Channel channel = null;
+        Session session;
+        Channel channel;
         String namePrivKey = "id_rsa_autoload_staging";
         String hostName = getHostName();
+        logger.info("Put temp file to host: " + hostName + " user: " + userName);
+
         try {
+            logger.debug("Start ssh");
             JSch ssh = new JSch();
             URL keyFileURL = this.getClass().getClassLoader().getResource(namePrivKey);
             URI keyFileURI = keyFileURL.toURI();
-//            SshServer remoteSSH = new SshServer("d-fe1.ezwim.cyso.net", "autoload", keyFileURL.toExternalForm());
-//            String outputScan = (remoteSSH.execute("ssh-keyscan -t rsa d-fe1.ezwim.cyso.net"));
-//            String[] mytext = outputScan.split("\n");
-//            String knownHostPublicKey = mytext[1].trim();
-//            ssh.setKnownHosts(new ByteArrayInputStream(knownHostPublicKey.getBytes()));
-            ssh.setConfig("StrictHostKeyChecking", "no");
+            JSch.setConfig("StrictHostKeyChecking", "no");
             ssh.addIdentity(new File(keyFileURI).getAbsolutePath());
-            session = ssh.getSession(userName, hostName, 22);
+            session = ssh.getSession(userName, hostName, sshPort);
             session.connect();
+            logger.debug("Start sftp");
             channel = session.openChannel("sftp");
             channel.connect();
             ChannelSftp sftp = (ChannelSftp) channel;
+            logger.debug("Put file");
             sftp.put(tempFilePath, remoteDir);
             channel.disconnect();
             session.disconnect();
-        } catch (JSchException e) {
-            e.printStackTrace();
-        } catch (SftpException e) {
-            e.printStackTrace();
-        } catch (URISyntaxException e) {
+            logger.debug("Done.");
+        } catch (JSchException | SftpException | URISyntaxException e) {
             e.printStackTrace();
         }
     }
@@ -269,17 +321,18 @@ public class RemoteServerAct {
      * possibility to set remoteDir
      */
     public void putTempFileOnServer(String userName, String remoteDirectory) throws IOException {
-        Session session = null;
-        Channel channel = null;
+        Session session;
+        Channel channel;
         String namePrivKey = "id_rsa_autoload_staging";
         String hostName = getHostName();
+        logger.info("Put temp file to host: " + hostName + " user: " + userName + " to " + remoteDirectory);
         try {
             JSch ssh = new JSch();
             URL keyFileURL = this.getClass().getClassLoader().getResource(namePrivKey);
             URI keyFileURI = keyFileURL.toURI();
-            ssh.setConfig("StrictHostKeyChecking", "no");
+            JSch.setConfig("StrictHostKeyChecking", "no");
             ssh.addIdentity(new File(keyFileURI).getAbsolutePath());
-            session = ssh.getSession(userName, hostName, 22);
+            session = ssh.getSession(userName, hostName, sshPort);
             session.connect();
             channel = session.openChannel("sftp");
             channel.connect();
@@ -287,29 +340,26 @@ public class RemoteServerAct {
             sftp.put(tempFilePath, remoteDirectory);
             channel.disconnect();
             session.disconnect();
-        } catch (JSchException e) {
-            e.printStackTrace();
-        } catch (SftpException e) {
-            e.printStackTrace();
-        } catch (URISyntaxException e) {
+        } catch (JSchException | URISyntaxException | SftpException e) {
             e.printStackTrace();
         }
     }
 
 
     public void putFileOnServer(String userName, String pathToLocalFile, String remoteDirectory) throws IOException {
-        LOGGER.info("Put file " + pathToLocalFile + " in " + remoteDirectory);
-        Session session = null;
-        Channel channel = null;
+        Session session;
+        Channel channel;
         String namePrivKey = "id_rsa_autoload_staging";
         String hostName = getHostName();
+        logger.info("Put file " + pathToLocalFile + " to host: " + hostName + " user: " + userName + " to " + remoteDirectory);
+
         try {
             JSch ssh = new JSch();
             URL keyFileURL = this.getClass().getClassLoader().getResource(namePrivKey);
             URI keyFileURI = keyFileURL.toURI();
-            ssh.setConfig("StrictHostKeyChecking", "no");
+            JSch.setConfig("StrictHostKeyChecking", "no");
             ssh.addIdentity(new File(keyFileURI).getAbsolutePath());
-            session = ssh.getSession(userName, hostName, 22);
+            session = ssh.getSession(userName, hostName, sshPort);
             session.connect();
             channel = session.openChannel("sftp");
             channel.connect();
@@ -317,72 +367,70 @@ public class RemoteServerAct {
             sftp.put(pathToLocalFile, remoteDirectory);
             channel.disconnect();
             session.disconnect();
-        } catch (JSchException e) {
-            e.printStackTrace();
-        } catch (SftpException e) {
-            e.printStackTrace();
-        } catch (URISyntaxException e) {
+        } catch (JSchException | SftpException | URISyntaxException e) {
             e.printStackTrace();
         }
     }
 
     public void executeSql() throws IOException {
-        String pathToPrivateKey = this.getClass().getResource("/id_rsa_autoload_staging").toExternalForm();
-        String hostName = getHostName();
-        SshServer SshServ = new SshServer(hostName, "autoload", pathToPrivateKey);
-        StringBuilder command1 = new StringBuilder();
-        command1.append("export ORACLE_HOME=/home/oracle/app/oracle/product/12.1.0/client_1;");
-        command1.append("/home/oracle/app/oracle/product/12.1.0/client_1/bin/sqlplus /nolog @" + remoteDir + "/" + tempFileName + ";");
-        sqlOutput = (SshServ.execute(command1.toString()));
-        SshServ.execute("rm " + remoteDir + "/" + tempFileName + "");
-        SshServ.execute("exit");
-        if ((sqlOutput.contains("procedure successfully completed.") || sqlOutput.contains("rows updated.")
-                || sqlOutput.contains("row updated.")) || sqlOutput.contains("Commit complete")
-                || (!sqlOutput.toLowerCase().contains("SQL Error".toLowerCase())
-                && !sqlOutput.toLowerCase().contains("ORA-".toLowerCase()))) {
-            LOGGER.info("Sql successfully executed");
-        } else {
-            throw new EzwimException("Problem with executing sql.\nSQL error:\n" + sqlOutput);
-        }
+        executeSql(true);
     }
 
     public String executeSql(boolean checkSuccess) throws IOException {
+        String command1 = "export ORACLE_HOME=/opt/oracle/instantclient_19;" +
+                "export TNS_ADMIN=$ORACLE_HOME/network/admin;" +
+                "/opt/oracle/instantclient_19/sqlplus /nolog @" + remoteDir + "/" + tempFileName + ";";
+        String command2 = "rm " + remoteDir + "/" + tempFileName + ";" +
+                "exit";
         String pathToPrivateKey = this.getClass().getResource("/id_rsa_autoload_staging").toExternalForm();
         String hostName = getHostName();
-        SshServer SshServ = new SshServer(hostName, "autoload", pathToPrivateKey);
-        StringBuilder command1 = new StringBuilder();
-        command1.append("export ORACLE_HOME=/home/oracle/app/oracle/product/12.1.0/client_1;");
-        command1.append("/home/oracle/app/oracle/product/12.1.0/client_1/bin/sqlplus /nolog @" + remoteDir + "/" + tempFileName + ";");
-        sqlOutput = (SshServ.execute(command1.toString()));
-        SshServ.execute("rm " + remoteDir + "/" + tempFileName + "");
-        SshServ.execute("exit");
+        logger.debug("Start ssh connection");
+        SshServer SshServ = new SshServer(hostName, "ezconfig", pathToPrivateKey);
+        logger.debug("Start execute sql");
+        sqlOutput = (SshServ.execute(command1));
+        SshServ.execute(command2);
+
+        logger.info("sqlOutput:\n" + sqlOutput);
         if (checkSuccess) {
-            if ((sqlOutput.contains("procedure successfully completed.") || sqlOutput.contains("rows updated.")
-                    || sqlOutput.contains("row updated."))
-                    && sqlOutput.contains("Commit complete")) {
-                LOGGER.info("Sql successfully executed");
+            boolean success = ((sqlOutput.contains("procedure successfully completed.") || sqlOutput.contains("rows updated.")
+                    || sqlOutput.contains("row updated.")) && sqlOutput.contains("Commit complete")
+                    || sqlOutput.contains("rows selected") || sqlOutput.contains("row selected")
+                    || (!sqlOutput.toLowerCase().contains("SQL Error".toLowerCase())
+                    && !sqlOutput.toLowerCase().contains("ORA-".toLowerCase())));
+
+            if (success) {
+                logger.info("Sql successfully executed");
             } else {
                 throw new EzwimException("Problem with executing sql.\nSQL error:\n" + sqlOutput);
             }
         }
+
         return sqlOutput;
     }
 
     public void getFileFromServer(String userName, String pathToRemoteFile, String localDirectory) throws
             IOException {
-
-        Session session = null;
-        Channel channel = null;
+        File dir = new File(localDirectory);
+        if (!dir.exists()) {
+            logger.debug("download dir is not exist, create...");
+            if (!dir.mkdirs()) {
+                throw new SeleniumDownloadException("can't create download dir");
+            }
+        } else {
+            logger.debug("download dir exists");
+        }
+        Session session;
+        Channel channel;
         String namePrivKey = "id_rsa_autoload_staging";
         String hostName = getHostName();
-        LOGGER.info("Get from "+hostName+" file " + pathToRemoteFile + " and put to " + localDirectory);
+        logger.info("Get from " + hostName + " file " + pathToRemoteFile + " and put to " + localDirectory);
         try {
             JSch ssh = new JSch();
             URL keyFileURL = this.getClass().getClassLoader().getResource(namePrivKey);
             URI keyFileURI = keyFileURL.toURI();
-            ssh.setConfig("StrictHostKeyChecking", "no");
+            JSch.setConfig("StrictHostKeyChecking", "no");
             ssh.addIdentity(new File(keyFileURI).getAbsolutePath());
-            session = ssh.getSession(userName, hostName, 22);
+            session = ssh.getSession(userName, hostName, sshPort);
             session.connect();
             channel = session.openChannel("sftp");
             channel.connect();
@@ -390,11 +438,7 @@ public class RemoteServerAct {
             sftp.get(pathToRemoteFile, localDirectory);
             channel.disconnect();
             session.disconnect();
-        } catch (JSchException e) {
-            e.printStackTrace();
-        } catch (SftpException e) {
-            e.printStackTrace();
-        } catch (URISyntaxException e) {
+        } catch (JSchException | SftpException | URISyntaxException e) {
             e.printStackTrace();
         }
     }
